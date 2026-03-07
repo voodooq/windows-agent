@@ -172,11 +172,62 @@ class AgentController:
     def get_allowed_roots(self) -> list[str]:
         return get_allowed_roots()
 
+    def _resume_goal_for_approved_request(self, approval: Any) -> dict[str, Any] | None:
+        goals = self.goal_manager.list_goals()
+
+        blocked_match = next(
+            (
+                goal
+                for goal in goals
+                if goal.status == "blocked"
+                and approval.id in (goal.progress_note or "")
+            ),
+            None,
+        )
+        if blocked_match is None:
+            blocked_match = next(
+                (
+                    goal
+                    for goal in goals
+                    if goal.status == "blocked"
+                    and goal.text.strip() == approval.goal_text.strip()
+                ),
+                None,
+            )
+
+        if blocked_match is None:
+            return None
+
+        resume_note = f"approval granted: {approval.id}; re-queued for execution"
+        self.goal_manager.update_status(
+            blocked_match.id,
+            "pending",
+            resume_note,
+        )
+        self.world_state_store.update_goal_status(
+            blocked_match.id,
+            "pending",
+            resume_note,
+        )
+        self.world_state_store.add_note(
+            f"approval {approval.id} granted; resumed goal {blocked_match.id}"
+        )
+
+        goal_data = blocked_match.model_dump()
+        goal_data["status"] = "pending"
+        goal_data["progress_note"] = resume_note
+        return goal_data
+
     def approve_approval(self, approval_id: str, note: str | None = None) -> dict[str, Any]:
         result = self.approval_store.resolve(approval_id, approved=True, note=note)
         if result is None:
             raise ValueError("approval request not found")
-        return result.model_dump()
+
+        resumed_goal = self._resume_goal_for_approved_request(result)
+        payload = result.model_dump()
+        payload["resumed_goal"] = resumed_goal
+        payload["resume_scheduled"] = resumed_goal is not None
+        return payload
 
     def reject_approval(self, approval_id: str, note: str | None = None) -> dict[str, Any]:
         result = self.approval_store.resolve(approval_id, approved=False, note=note)

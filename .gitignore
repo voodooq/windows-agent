@@ -1,0 +1,27 @@
+# 字节码与缓存
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 环境与配置
+.env
+.initialized
+.venv/
+env/
+venv/
+
+# 运行数据与测试数据（用户要求）
+data/
+workspace/
+
+# 日志
+logs/
+*.log
+
+# IDE 相关
+.vscode/
+.idea/
+
+# 操作系统文件
+.DS_Store
+Thumbs.db

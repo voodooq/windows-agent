@@ -10,6 +10,9 @@ from typing import Any, Dict
 class EventLogger:
     def __init__(self, path: str = "data/events.jsonl") -> None:
         self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        if not self.path.exists():
+            self.path.touch()
 
     def log(
         self,

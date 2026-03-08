@@ -1,0 +1,104 @@
+app:
+  name: windows-agent
+  mode: stable
+
+llm:
+  provider: openai_compatible
+  api_key_env: OPENAI_API_KEY
+  base_url_env: OPENAI_BASE_URL
+  model_env: OPENAI_MODEL
+  temperature: 0.1
+  max_tokens: 1200
+  timeout: 120
+  use_responses_api: false
+
+runtime:
+  max_steps: 8
+  auto_approve_low_risk: true
+  auto_approve_medium_risk: true
+  command_timeout_sec: 60
+  watch_paths:
+    - "./workspace"
+    - "./data"
+  goals_path: "data/goals.json"
+  world_state_path: "data/world_state.json"
+  approval_store_path: "data/approvals.json"
+  event_log_path: "data/events.jsonl"
+  max_goal_retries: 2
+  max_recent_events_for_context: 5
+  max_recent_goals_for_context: 5
+  max_recent_failures_for_context: 5
+  max_recent_tools_for_context: 5
+  max_new_files_for_context: 10
+  computer_use:
+    enable_visual_observation: true
+    enable_tools: true
+    grounding_columns: 4
+    grounding_rows: 3
+    pause_sec: 0.1
+  approval_policy:
+    always_require_for_tools:
+      - "run_command"
+      - "click_element"
+      - "type_text"
+      - "press_hotkey"
+      - "click_box"
+      - "computer_type_text"
+      - "computer_press_keys"
+
+watchers:
+  file_watch:
+    enabled: true
+    paths:
+      - "./workspace/inbox"
+    recursive: false
+    create_goal_on_new_file: true
+    debounce_sec: 2.0
+    dedupe_window_sec: 15.0
+    goal_priority_on_new_file: 3
+    include_actions:
+      - "created"
+      - "modified"
+    ignore_suffixes:
+      - ".tmp"
+      - ".swp"
+      - ".part"
+      - ".crdownload"
+    ignore_prefixes:
+      - "~$"
+
+goal_factory:
+  default_trigger_type: "event"
+  suppress_if_open_goal_exists: true
+  suppress_duplicate_goal_window_sec: 15.0
+  low_value_suffixes: []
+  low_value_prefixes: []
+
+security:
+  allowed_roots:
+    - "./data"
+    - "./workspace"
+    - "%USERPROFILE%/Desktop"
+    - "%USERPROFILE%/Documents"
+    - "%USERPROFILE%/Downloads"
+
+  blocked_commands:
+    - "del"
+    - "format"
+    - "shutdown"
+    - "reg delete"
+    - "rm -rf"
+
+  allowed_apps:
+    - "notepad.exe"
+    - "calc.exe"
+    - "mspaint.exe"
+    - "explorer.exe"
+
+  high_risk_tools:
+    - "click_element"
+    - "type_text"
+    - "press_hotkey"
+    - "click_box"
+    - "computer_type_text"
+    - "computer_press_keys"

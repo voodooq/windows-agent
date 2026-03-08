@@ -101,7 +101,29 @@ class AgentDaemon:
         return self.config.data.get("watchers", {}).get("file_watch", {})
 
     def on_goal_created(self, event: Event) -> None:
-        console.print(f"[cyan][Event][/cyan] goal.created -> {event.payload}")
+        payload = event.payload or {}
+        console.print(f"[cyan][Event][/cyan] goal.created -> {payload}")
+        self.world_state_store.append_event(
+            "goal.created",
+            {
+                "goal_id": payload.get("id"),
+                "text": payload.get("text"),
+                "priority": payload.get("priority"),
+                "trigger_type": payload.get("trigger_type"),
+                "status": payload.get("status"),
+            },
+            decision="accepted",
+        )
+        self.event_logger.log(
+            event_type="goal.created",
+            payload=payload,
+            accepted=True,
+            created_goal_id=payload.get("id"),
+            goal_text=payload.get("text"),
+            goal_priority=payload.get("priority"),
+            source="daemon.on_goal_created",
+            notes=[payload.get("trigger_type", "unknown")],
+        )
 
     def on_file_changed(self, event: Event) -> None:
         self._refresh_bad_state()
@@ -194,11 +216,45 @@ class AgentDaemon:
 
     def on_run_pending_goals(self, event: Event) -> None:
         if self._auto_goals_paused:
+            self.world_state_store.append_event(
+                "goal.run_pending",
+                {"paused": True},
+                decision="ignored",
+                reason="auto_goals_paused",
+            )
             return
 
         goal = self.goal_manager.get_active_goal()
         if not goal:
             return
+
+        self.world_state_store.append_event(
+            "goal.run_pending",
+            {
+                "goal_id": goal.id,
+                "text": goal.text,
+                "priority": goal.priority,
+                "trigger_type": goal.trigger_type,
+                "status": goal.status,
+            },
+            decision="accepted",
+        )
+        self.event_logger.log(
+            event_type="goal.run_pending",
+            payload={
+                "goal_id": goal.id,
+                "text": goal.text,
+                "priority": goal.priority,
+                "trigger_type": goal.trigger_type,
+                "status": goal.status,
+            },
+            accepted=True,
+            created_goal_id=goal.id,
+            goal_text=goal.text,
+            goal_priority=goal.priority,
+            source="daemon.on_run_pending_goals",
+            notes=["goal execution scheduled"],
+        )
 
         console.print(f"[yellow]Running goal:[/yellow] {goal.id} | {goal.text}")
         try:
@@ -322,6 +378,19 @@ class AgentDaemon:
 
     def on_heartbeat(self, event: Event) -> None:
         self._refresh_bad_state()
+        payload = event.payload or {}
+        self.world_state_store.append_event(
+            "system.heartbeat",
+            payload,
+            decision="accepted",
+        )
+        self.event_logger.log(
+            event_type="system.heartbeat",
+            payload=payload,
+            accepted=True,
+            source="daemon.on_heartbeat",
+            notes=["scheduler heartbeat"],
+        )
         console.print("[blue]heartbeat[/blue]")
 
     def _refresh_bad_state(self) -> None:
@@ -378,6 +447,18 @@ class AgentDaemon:
     def run_forever(self, sleep_sec: float = 1.0) -> None:
         self._running = True
         self.world_state_store.add_note("agent daemon started")
+        self.world_state_store.append_event(
+            "system.daemon_started",
+            {"config_path": self.config_path},
+            decision="accepted",
+        )
+        self.event_logger.log(
+            event_type="system.daemon_started",
+            payload={"config_path": self.config_path},
+            accepted=True,
+            source="daemon.run_forever",
+            notes=["daemon started"],
+        )
         console.print(Panel("Agent Daemon Started", style="green"))
 
         try:
@@ -389,6 +470,18 @@ class AgentDaemon:
             console.print("[red]Daemon stopped by user[/red]")
         finally:
             self.file_watcher.stop()
+            self.world_state_store.append_event(
+                "system.daemon_stopped",
+                {"config_path": self.config_path},
+                decision="accepted",
+            )
+            self.event_logger.log(
+                event_type="system.daemon_stopped",
+                payload={"config_path": self.config_path},
+                accepted=True,
+                source="daemon.run_forever",
+                notes=["daemon stopped"],
+            )
             self._running = False
 
     def stop(self) -> None:
@@ -400,10 +493,34 @@ class AgentDaemon:
     def pause_auto_goals(self) -> None:
         self._auto_goals_paused = True
         self.world_state_store.add_note("auto goals paused")
+        self.world_state_store.append_event(
+            "system.auto_goals_paused",
+            {"paused": True},
+            decision="accepted",
+        )
+        self.event_logger.log(
+            event_type="system.auto_goals_paused",
+            payload={"paused": True},
+            accepted=True,
+            source="daemon.pause_auto_goals",
+            notes=["auto goals paused"],
+        )
 
     def resume_auto_goals(self) -> None:
         self._auto_goals_paused = False
         self.world_state_store.add_note("auto goals resumed")
+        self.world_state_store.append_event(
+            "system.auto_goals_resumed",
+            {"paused": False},
+            decision="accepted",
+        )
+        self.event_logger.log(
+            event_type="system.auto_goals_resumed",
+            payload={"paused": False},
+            accepted=True,
+            source="daemon.resume_auto_goals",
+            notes=["auto goals resumed"],
+        )
 
     def auto_goals_paused(self) -> bool:
         return self._auto_goals_paused

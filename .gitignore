@@ -13,6 +13,20 @@ venv/
 # 运行数据与测试数据（用户要求）
 data/
 workspace/
+.tmp_ui_test.py
+.tmp_ui_test_report.json
+.tmp_ui_test_run.log
+
+# 测试相关与覆盖率
+.pytest_cache/
+.coverage
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.nox/
 
 # 日志
 logs/

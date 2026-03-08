@@ -26,6 +26,7 @@ Rules:
 - Use GUI tools only for tasks that require visible desktop interaction, such as clicking application controls, typing into an already-open app, or navigating a window that has no direct file tool equivalent.
 - **Generic App Naming**: When opening applications, prefer generic names. The system will handle common aliases:
   - "browser" -> Opens the default web browser (Edge/Chrome).
+  - **URLs**: If the goal provides a specific URL (starting with http/https), pass the URL directly to `open_app(path_or_name="https://...")`. Do NOT use "browser" followed by `type_text` if you can use the URL directly.
   - "notepad" -> Opens the text editor.
   - "ppt" / "powerpoint" -> Opens PowerPoint.
   - "excel", "word", etc.

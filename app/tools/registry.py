@@ -84,6 +84,10 @@ class ToolRegistry:
     def _open_app_wrapper(self, path_or_name: str):
         normalized = path_or_name.strip().lower()
         
+        # URL 自动跳转支持：如果是网址，直接使用 'start' 打开，并跳过允许列表校验
+        if normalized.startswith("http://") or normalized.startswith("https://"):
+            return open_app(path_or_name=f'start "" "{path_or_name}"')
+
         # 别名映射：将通用称呼转换为系统可执行命令
         aliases = {
             "browser": "start", # Windows 'start' 配合 URL 会打开默认浏览器，单独使用可尝试打开主页

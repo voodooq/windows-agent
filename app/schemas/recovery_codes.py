@@ -9,3 +9,7 @@ class RecoveryCode(StrEnum):
     INSPECT_DUE_TO_FILE_ACTIVITY = "inspect_due_to_file_activity"
     CONSERVATIVE_DUE_TO_REPEAT_TOOL_FAILURES = "conservative_due_to_repeat_tool_failures"
     CONSERVATIVE_DUE_TO_SIMILAR_GOAL_FAILURE = "conservative_due_to_similar_goal_failure"
+    REGROUND_SCREEN = "reground_screen"
+    RESTART_APPLICATION = "restart_application"
+    SWITCH_TO_CODE_CHANNEL = "switch_to_code_channel"
+    SIMPLIFY_TARGET = "simplify_target"

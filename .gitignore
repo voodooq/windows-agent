@@ -31,6 +31,9 @@ coverage.xml
 # 日志
 logs/
 *.log
+docs/
+*.md
+*.bak
 
 # IDE 相关
 .vscode/

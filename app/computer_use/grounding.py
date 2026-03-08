@@ -1,21 +1,23 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
-
+from typing import Any, Dict, List, Optional
+from abc import ABC, abstractmethod
 from PIL import Image, ImageDraw, ImageFont
 
 from app.computer_use.screen import ScreenCapture
 
 
-class GroundingProvider:
+class GroundingProvider(ABC):
+    @abstractmethod
     def ground(self, image_path: str) -> Dict[str, Any]:
-        raise NotImplementedError
+        """进行 Grounding 识别，返回元素列表和标注后的图片路径"""
+        pass
 
 
 class GridGroundingProvider(GroundingProvider):
     def __init__(
         self,
-        screen_capture: ScreenCapture | None = None,
+        screen_capture: Optional[ScreenCapture] = None,
         columns: int = 4,
         rows: int = 3,
     ):
@@ -73,3 +75,21 @@ class GridGroundingProvider(GroundingProvider):
             "provider": "grid_grounding_fallback",
             "image_size": {"width": width, "height": height},
         }
+
+
+class UITarsGroundingProvider(GroundingProvider):
+    """(TODO) 接入 UI-TARS 模型进行语义 grounding"""
+    def ground(self, image_path: str) -> Dict[str, Any]:
+        # TODO: 实现 UI-TARS 逻辑
+        raise NotImplementedError("UITarsGroundingProvider is not yet implemented")
+
+
+class HttpGroundingProvider(GroundingProvider):
+    """(TODO) 接入外部 HTTP API 进行 grounding"""
+    def __init__(self, url: str, api_key: Optional[str] = None):
+        self.url = url
+        self.api_key = api_key
+
+    def ground(self, image_path: str) -> Dict[str, Any]:
+        # TODO: 实现 API 调用逻辑
+        raise NotImplementedError("HttpGroundingProvider is not yet implemented")

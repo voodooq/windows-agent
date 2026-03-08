@@ -143,6 +143,38 @@ class WorldStateStore:
         state.last_error = message
         return self.save(state)
 
+    def append_trajectory(
+        self,
+        step_id: int,
+        planned_action: str,
+        screenshot_path: Optional[str] = None,
+        tool_used: Optional[str] = None,
+        tool_output: Optional[str] = None,
+        verification_result: Optional[str] = None,
+        limit: int = 10,
+    ) -> WorldState:
+        state = self.load()
+        trajectory_record = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "step_id": step_id,
+            "planned_action": planned_action,
+        }
+        if screenshot_path:
+            trajectory_record["screenshot_path"] = screenshot_path
+        if tool_used:
+            trajectory_record["tool_used"] = tool_used
+        if tool_output:
+            trajectory_record["tool_output"] = tool_output
+        if verification_result:
+            trajectory_record["verification_result"] = verification_result
+
+        state.recent_trajectories = self._append_limited(
+            state.recent_trajectories,
+            trajectory_record,
+            limit,
+        )
+        return self.save(state)
+
     def add_new_file(self, path: str) -> WorldState:
         state = self.load()
         state.new_files = self._append_unique_limited(state.new_files, path, 50)
@@ -201,9 +233,12 @@ class WorldStateStore:
             "recent_goals_summary": state.recent_goals[-goal_limit:],
             "recent_failures_summary": state.recent_failures[-failure_limit:],
             "recent_tools_summary": state.recent_tools[-tool_limit:],
+            "recent_trajectories": state.recent_trajectories[-5:],
+            "known_files": state.known_files[-20:],
             "new_files": state.new_files[-new_file_limit:],
             "watched_paths": state.watched_paths[:20],
             "last_error": state.last_error,
+            "active_window": state.active_window,
             "last_tool": state.last_tool,
             "last_tool_ok": state.last_tool_ok,
             "bad_state": state.bad_state,

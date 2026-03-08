@@ -12,6 +12,7 @@ from app.runtime.observer import Observer
 from app.runtime.planner import Planner
 from app.runtime.reflector import Reflector
 from app.runtime.replanner import Replanner
+from app.runtime.scorer import ActionScorer
 from app.runtime.state_analyzer import StateAnalyzer
 from app.runtime.verifier import Verifier
 from app.state.approval_store import ApprovalStore
@@ -74,7 +75,7 @@ class AgentRuntime:
             path=str(config.runtime.get("approval_store_path", "data/approvals.json")),
         )
         self.state_analyzer = StateAnalyzer()
-        self.verifier = Verifier(observer=self.observer)
+        self.verifier = Verifier(observer=self.observer, llm=self.llm)
         self.planner = Planner(llm=self.llm, tool_registry=self.tool_registry)
         self.executor = Executor(
             tool_registry=self.tool_registry,
@@ -88,8 +89,9 @@ class AgentRuntime:
             ),
             approval_policy=config.runtime.get("approval_policy", {}),
         )
-        self.reflector = Reflector()
+        self.reflector = Reflector(llm=self.llm)
         self.replanner = Replanner()
+        self.scorer = ActionScorer(llm=self.llm)
         self.goal_manager = GoalManager(
             path=str(config.runtime.get("goals_path", "data/goals.json")),
         )
@@ -123,11 +125,35 @@ class AgentRuntime:
         active_bad_state = analyzed_bad_state if analyzed_bad_state.get("is_bad_state") else {}
 
         for step in plan.steps:
+            # Phase 3: Best-of-N Candidate Selection
+            active_step_data = step.model_dump()
+            if step.candidates:
+                # Merge main tool/args into candidates to evaluate all options
+                all_options = [{"tool": step.tool, "args": step.args}] + step.candidates
+                best_option = self.scorer.select_best(
+                    goal=goal,
+                    actions=all_options,
+                    world_state_summary=world_state_summary
+                )
+                active_step_data["tool"] = best_option.get("tool", step.tool)
+                active_step_data["args"] = best_option.get("args", step.args)
+
             exec_result = self.executor.execute_plan_step(
-                step,
+                step, # Note: executor usually expects the object, but we've updated it
                 goal_text=goal,
                 bad_state=active_bad_state,
             )
+            # Ensure executor uses the best selected option
+            if step.candidates:
+                 # We need to ensure executor uses the refined args
+                 # Overwriting step object for safety
+                 step.tool = active_step_data["tool"]
+                 step.args = active_step_data["args"]
+                 exec_result = self.executor.execute_plan_step(
+                     step,
+                     goal_text=goal,
+                     bad_state=active_bad_state,
+                 )
             observed = self.observer.observe(
                 last_tool=step.tool,
                 last_tool_ok=exec_result.get("ok"),
@@ -189,6 +215,14 @@ class AgentRuntime:
                     tool_limit=int(self.config.runtime.get("max_recent_tools_for_context", 5)),
                     new_file_limit=int(self.config.runtime.get("max_new_files_for_context", 10)),
                 )
+                
+                # Phase 1: Call Reflector to diagnose this specific step failure
+                diagnosis = self.reflector.reflect(
+                    goal=goal,
+                    execution_result={"steps": [step_record], "ok": False},
+                    world_state_summary=replan_world_state_summary
+                )
+                
                 replanned = self.replanner.replan(
                     goal_text=goal,
                     failed_step=step.model_dump(),
@@ -196,6 +230,7 @@ class AgentRuntime:
                     verification_result=verification,
                     world_state=observed,
                     world_state_summary=replan_world_state_summary,
+                    reflection_result=diagnosis,
                 )
                 self.world_state_store.append_failure(
                     source="agent_runtime",

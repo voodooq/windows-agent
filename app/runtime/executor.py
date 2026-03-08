@@ -52,6 +52,12 @@ class Executor:
 
         try:
             result = self.tool_registry.call(step.tool, step.args)
+            channel = "gui" if step.tool in {
+                "click_element", "type_text", "press_hotkey", "click_box", 
+                "move_to_box", "computer_type_text", "computer_press_keys", 
+                "computer_scroll", "ground_screen", "capture_screen"
+            } else "code"
+            
             return {
                 "step_id": step.id,
                 "tool": step.tool,
@@ -61,6 +67,7 @@ class Executor:
                 "ok": bool(result.ok),
                 "output": result.output,
                 "error": result.error,
+                "channel": channel,
             }
         except Exception as e:
             return {
@@ -71,6 +78,7 @@ class Executor:
                 "risk_level": step.risk_level,
                 "ok": False,
                 "error": str(e),
+                "channel": "code", # Default to code for exceptions
             }
 
     def execute_plan(self, plan: Plan) -> Dict[str, Any]:

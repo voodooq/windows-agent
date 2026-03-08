@@ -15,6 +15,7 @@ class Replanner:
         verification_result: VerificationResult,
         world_state,
         world_state_summary: Dict[str, Any] | None = None,
+        reflection_result: Any | None = None,
     ) -> Dict[str, Any]:
         tool = failed_step.get("tool")
         args = failed_step.get("args", {})
@@ -41,6 +42,11 @@ class Replanner:
             recent_file_event_count=recent_file_event_count,
             recent_new_files_count=recent_new_files_count,
         )
+
+        # Override with reflection suggested codes if available
+        if reflection_result and hasattr(reflection_result, "suggested_recovery_code") and reflection_result.suggested_recovery_code:
+            recovery_code = reflection_result.suggested_recovery_code
+            recovery_mode = "reflection_guided"
 
         suggestions = self._build_suggestions(
             tool=tool,

@@ -12,3 +12,8 @@ class FailureCode(StrEnum):
     WINDOW_TEXT_READ_FAILED = "window_text_read_failed"
     RETRY_LIMIT_REACHED = "retry_limit_reached"
     RUNTIME_EXCEPTION = "runtime_exception"
+    WRONG_TARGET = "wrong_target"
+    STALE_UI = "stale_ui"
+    ELEMENT_NOT_INTERACTABLE = "element_not_interactable"
+    GROUNDING_FAILED = "grounding_failed"
+    VISUAL_VERIFICATION_MISMATCH = "visual_verification_mismatch"

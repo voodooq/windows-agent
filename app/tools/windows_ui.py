@@ -53,6 +53,8 @@ def focus_window(title: str, timeout_sec: int = 10) -> ToolResult:
     try:
         app = Application(backend="uia").connect(title_re=f".*{title}.*", timeout=timeout_sec)
         win = app.top_window()
+        if win.get_show_state() == 2: # Minimized
+            win.restore()
         win.set_focus()
         return ToolResult(
             ok=True,

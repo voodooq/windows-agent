@@ -31,3 +31,4 @@ class WorldState(BaseModel):
     screen_summary: Optional[str] = None
     ocr_text: List[str] = Field(default_factory=list)
     last_action_artifacts: List[Dict[str, Any]] = Field(default_factory=list)
+    recent_trajectories: List[Dict[str, Any]] = Field(default_factory=list)

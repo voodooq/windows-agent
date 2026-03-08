@@ -83,7 +83,37 @@ class ToolRegistry:
 
     def _open_app_wrapper(self, path_or_name: str):
         normalized = path_or_name.strip().lower()
-        if self.allowed_apps and normalized not in self.allowed_apps:
+        
+        # 别名映射：将通用称呼转换为系统可执行命令
+        aliases = {
+            "browser": "start", # Windows 'start' 配合 URL 会打开默认浏览器，单独使用可尝试打开主页
+            "浏览器": "start",
+            "notepad": "notepad",
+            "记事本": "notepad",
+            "ppt": "powerpnt",
+            "powerpoint": "powerpnt",
+            "excel": "excel",
+            "word": "winword",
+            "calc": "calc",
+            "计算器": "calc"
+        }
+        
+        if normalized in aliases:
+            # 如果是浏览器，'start' 需要一个目标，这里尝试打开一个空页面或根据上下文
+            target = aliases[normalized]
+            if normalized in ["browser", "浏览器"]:
+                # 使用 start "" "https://www.bing.com" 来启动默认浏览器并打开必应
+                return open_app(path_or_name='start "" "https://www.bing.com"')
+            return open_app(path_or_name=target)
+
+        # 改进策略：允许模糊匹配。如果输入包含允许的可执行文件名，或者可执行文件名包含输入关键字
+        allowed = False
+        for app in self.allowed_apps:
+            if app in normalized or normalized in app:
+                allowed = True
+                break
+        
+        if self.allowed_apps and not allowed:
             raise ValueError(f"app not allowed by policy: {path_or_name}")
         return open_app(path_or_name=path_or_name)
 

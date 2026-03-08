@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
-from app.schemas.reflection import Reflection
+from app.schemas.reflection import ReflectionResult
 
 
 class MemoryManager:
@@ -46,5 +46,5 @@ class MemoryManager:
             )
         return summaries
 
-    def build_reflection_record(self, reflection: Reflection) -> Dict[str, Any]:
+    def build_reflection_record(self, reflection: ReflectionResult) -> Dict[str, Any]:
         return reflection.model_dump()

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+from app.llm.base import BaseLLMClient
 
 from app.computer_use.visual_verifier import VisualVerifier
 from app.runtime.observer import Observer
@@ -11,9 +13,9 @@ from app.schemas.world_state import WorldState
 
 
 class Verifier:
-    def __init__(self, observer: Observer):
+    def __init__(self, observer: Observer, llm: Optional[BaseLLMClient] = None):
         self.observer = observer
-        self.visual_verifier = VisualVerifier()
+        self.visual_verifier = VisualVerifier(llm=llm)
 
     def verify_step(self, tool: str, args: Dict[str, Any], output: Dict[str, Any] | None = None) -> Dict[str, Any]:
         output = output or {}
